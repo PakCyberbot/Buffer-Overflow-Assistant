@@ -16,6 +16,12 @@ This program is not fully automated. It's just the helper during stack-based buf
 - - Text that automatically copied to your Clipboard : Green
 ![Clipboard](images/2.png)
 
+- You can directly do exploitation of the target program using -e/--exploit flag, if you know EIP offset, Bad Chars, and Jump point.
+![Direct Exploit](images/5.png)
+
+- You can generate the portable exploit python program too to directly exploit the target without providing any values.
+![Generate Exploit](images/6.png)
+
 ### Complete the requirements for this program 
 ```
 pip install -r requirements.txt
