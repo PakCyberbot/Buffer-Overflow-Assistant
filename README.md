@@ -16,6 +16,9 @@ This program is not fully automated. It's just the helper during stack-based buf
 - - Text that automatically copied to your Clipboard : Green
 ![Clipboard](images/2.png)
 
+-- Placeholder in the command : BLUE Background
+![PlaceHolder](images/7.png)
+
 - You can directly do exploitation of the target program using -e/--exploit flag, if you know EIP offset, Bad Chars, and Jump point.
 ![Direct Exploit](images/5.png)
 
