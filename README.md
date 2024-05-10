@@ -1,4 +1,4 @@
-# Buffer-Overflow(BOF)-Assitant
+# Buffer-Overflow(BOF)-Assistant
 This program is not fully automated. It's just the helper during stack-based buffer-overflow exploitation.
 ![BOF-Assistant Interface](images/1.png)
 
