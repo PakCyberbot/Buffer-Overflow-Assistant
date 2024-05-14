@@ -20,34 +20,34 @@ END = "\033[0m"             # To reset the color
 
 # Headings for each section
 H_fuzz = """
- _____             _         
-|   __|_ _ ___ ___|_|___ ___ 
+ _____             _
+|   __|_ _ ___ ___|_|___ ___
 |   __| | |- _|- _| |   | . |
 |__|  |___|___|___|_|_|_|_  |
                         |___|"""
-H_EIP = """                                         
- _____         _           _ _ _            _____ _____ _____ 
+H_EIP = """
+ _____         _           _ _ _            _____ _____ _____
 |     |___ ___| |_ ___ ___| | |_|___ ___   |   __|     |  _  |
 |   --| . |   |  _|  _| . | | | |   | . |  |   __|-   -|   __|
-|_____|___|_|_|_| |_| |___|_|_|_|_|_|_  |  |_____|_____|__|   
-                                    |___|                     
+|_____|___|_|_|_| |_| |___|_|_|_|_|_|_  |  |_____|_____|__|
+                                    |___|
 """
-H_BadCh = """                                                                               
- _____ _       _ _            _____       _    _____ _                   _               
-|   __|_|___ _| |_|___ ___   | __  |___ _| |  |     | |_ ___ ___ ___ ___| |_ ___ ___ ___ 
+H_BadCh = """
+ _____ _       _ _            _____       _    _____ _                   _
+|   __|_|___ _| |_|___ ___   | __  |___ _| |  |     | |_ ___ ___ ___ ___| |_ ___ ___ ___
 |   __| |   | . | |   | . |  | __ -| .'| . |  |   --|   | .'|  _| .'|  _|  _| -_|  _|_ -|
 |__|  |_|_|_|___|_|_|_|_  |  |_____|__,|___|  |_____|_|_|__,|_| |__,|___|_| |___|_| |___|
                       |___|                                                              """
 H_JumpPt = """
- _____ _       _ _                      __                  _____     _     _   
-|   __|_|___ _| |_|___ ___    ___    __|  |_ _ _____ ___   |  _  |___|_|___| |_ 
+ _____ _       _ _                      __                  _____     _     _
+|   __|_|___ _| |_|___ ___    ___    __|  |_ _ _____ ___   |  _  |___|_|___| |_
 |   __| |   | . | |   | . |  | .'|  |  |  | | |     | . |  |   __| . | |   |  _|
-|__|  |_|_|_|___|_|_|_|_  |  |__,|  |_____|___|_|_|_|  _|  |__|  |___|_|_|_|_|  
+|__|  |_|_|_|___|_|_|_|_  |  |__,|  |_____|___|_|_|_|  _|  |__|  |___|_|_|_|_|
                       |___|                         |_|                         """
 H_exploitatoin = """
-                                             
- _____         _     _ _       _   _         
-|   __|_ _ ___| |___|_| |_ ___| |_|_|___ ___ 
+
+ _____         _     _ _       _   _
+|   __|_ _ ___| |___|_| |_ ___| |_|_|___ ___
 |   __|_'_| . | | . | |  _| .'|  _| | . |   |
 |_____|_,_|  _|_|___|_|_| |__,|_| |_|___|_|_|
           |_|                                """
@@ -56,13 +56,13 @@ H_exploitatoin = """
 def intro():
     print(BLUE)
     print("""
-______  ___________         ___          _     _              _   
-| ___ \|  _  |  ___|       / _ \        (_)   | |            | |  
-| |_/ /| | | | |_ ______  / /_\ \___ ___ _ ___| |_ __ _ _ __ | |_ 
+______  ___________         ___          _     _              _
+| ___ \|  _  |  ___|       / _ \        (_)   | |            | |
+| |_/ /| | | | |_ ______  / /_\ \___ ___ _ ___| |_ __ _ _ __ | |_
 | ___ \| | | |  _|______| |  _  / __/ __| / __| __/ _` | '_ \| __|
-| |_/ /\ \_/ / |          | | | \__ \__ \ \__ \ || (_| | | | | |_ 
+| |_/ /\ \_/ / |          | | | \__ \__ \ \__ \ || (_| | | | | |_
 \____/  \___/\_|          \_| |_/___/___/_|___/\__\__,_|_| |_|\__|
-                                                                  
+
                                                                   """)
     print(GREEN+"My Name is Bofy makes BOF(Buffer-Overflow) Easy made by PakCyberbot")
     print("You can follow Pakcyberbot on his social media platforms for more informative materials.\nAll SocialMedia links can be found here:",
@@ -83,6 +83,10 @@ ______  ___________         ___          _     _              _
     prefix = input(
         BLUE+"If there is any prefix with the input then type it else Leave empty : "+END)
 
+    set_novul_inputs()
+
+
+def set_novul_inputs():
     global prevs_ar
     prevs_ar = []
     prev = input(
@@ -99,8 +103,6 @@ ______  ___________         ___          _     _              _
             BLUE+"Is it correct? Insert N to wipe them: "+END).strip()
         if res_c == "N":
             prevs_ar.clear()
-
-########################################### ------ MODIFY ACCORDING TO PROGRAM INPUT ------###########################################
 
 
 def program_input_handling(s, buffer):
@@ -244,7 +246,6 @@ def exploit():
 
             program_input_handling(s, buffer)
 
-            # s.send(bytes(buffer + "\r\n", "latin-1"))
             print("Done!")
         except:
             print("Could not connect.")
@@ -390,10 +391,11 @@ def direct_exploit():
 
     # Direct Value assignment
     prefix = input(BLUE+"Prefix (if Any else Leave blank): "+END)
+    set_novul_inputs()
     offset = int(input(BLUE+"Offset of EIP : "+END))
     badchars = input(BLUE+"Bad Chars (input: \\x00\\x07\\xe1) : "+END)
     badchars = '\\x00' if badchars == '' else badchars
-
+    
     retn = input(BLUE+"ESP register address(For example if the address is \\x01\\x02\\x03\\x04 in Immunity, write it as \\x04\\x03\\x02\\x01) : "+END)
     retn = retn.encode('utf-8').decode('unicode_escape')
 
