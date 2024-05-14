@@ -86,7 +86,7 @@ ______  ___________         ___          _     _              _
     global prevs_ar
     prevs_ar = []
     prev = input(
-        BLUE+"You can send other inputs the vulnerable one (e.g username and password).\r\nInsert the first input, leave it empty to terminate: "+END)
+        BLUE+"You can send other inputs before the vulnerable one (e.g username and password).\r\nInsert the first input, leave it empty to terminate: "+END)
 
     while prev != "":
         prevs_ar.append(prev)
